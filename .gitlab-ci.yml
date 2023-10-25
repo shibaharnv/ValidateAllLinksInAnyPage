@@ -1,0 +1,24 @@
+image: markhobson/maven-chrome:jdk-17
+
+stages:
+  - build
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+build:
+  stage: build
+  tags:
+    - cnc_ret_a
+  script:
+    - mvn $MAVEN_OPTS clean package
+    - mvn compile
+
+test:
+  stage: test
+  tags:
+    - cnc_ret_a
+  script:
+    - mvn exec:java
+
