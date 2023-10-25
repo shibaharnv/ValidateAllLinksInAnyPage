@@ -1,7 +1,6 @@
 package linkscheck;
 
 
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -16,16 +15,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+
 public class BrokenLinksTest {
     public static void main(String[] args) throws InterruptedException, UnknownHostException {
         Properties properties = new Properties();
-        try (InputStream input = new FileInputStream("config.properties")) {
+            try (InputStream input = new FileInputStream("config.properties")) {
             properties.load(input);
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        WebDriver driver = new ChromeDriver(); // Create WebDriver instance once
 
         try {
             // Create an HTML report file
@@ -39,6 +38,7 @@ public class BrokenLinksTest {
                 String applicationName = (String) entry.getKey();
                 String applicationUrl = (String) entry.getValue();
 
+                WebDriver driver = new ChromeDriver();
                 driver.get(applicationUrl);
                 driver.manage().window().maximize();
                 Thread.sleep(4000);
@@ -57,6 +57,8 @@ public class BrokenLinksTest {
                 }
 
                 LinkStatusReporter(writer, applicationName, stringArray, applicationUrl);
+
+                driver.quit(); // Close the WebDriver instance
             }
 
             // Close the table and the HTML body
@@ -65,22 +67,19 @@ public class BrokenLinksTest {
             // Close the writer
             writer.close();
 
-            System.out.println("Links Validation Completed. Please refer links_validation_report in the project directory");
+            System.out.println("Links Validation Completed .Please refer links_validation_report in project directory");
 
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            driver.quit(); // Close the WebDriver instance
         }
     }
-
 
     public static void LinkStatusReporter(BufferedWriter writer, String applicationName, String[] linksToCheck, String applicationUrl) {
         try {
             int totalLinks = linksToCheck.length;
             int notWorkingLinksCount = 0;
 
-            List<String> notWorkingLinksList = new ArrayList<>();
+            StringBuilder notWorkingLinks = new StringBuilder("[");
 
             for (String urlToCheck : linksToCheck) {
                 HttpURLConnection connection = null;
@@ -95,8 +94,7 @@ public class BrokenLinksTest {
                     boolean linkIsWorking = responseCode == HttpURLConnection.HTTP_OK;
 
                     if (!linkIsWorking) {
-                        String linkStatus = "<a href='" + urlToCheck + "'>" + urlToCheck + "</a>" + " " + responseCode;
-                        notWorkingLinksList.add(linkStatus);
+                        notWorkingLinks.append("[\"").append(urlToCheck).append("\", ").append(responseCode).append("],");
                         notWorkingLinksCount++;
                     }
                 } catch (MalformedURLException e) {
@@ -108,6 +106,12 @@ public class BrokenLinksTest {
                 }
             }
 
+            // Remove the trailing comma and close the array
+            if (notWorkingLinks.length() > 1) {
+                notWorkingLinks.deleteCharAt(notWorkingLinks.length() - 1);
+            }
+            notWorkingLinks.append("]");
+
             // Create an HTML row with the link data
             writer.write("<tr>");
             writer.write("<td>" + applicationName + "</td>");
@@ -115,22 +119,26 @@ public class BrokenLinksTest {
             writer.write("<td>" + totalLinks + "</td>");
             writer.write("<td>" + notWorkingLinksCount + "</td>");
 
-            // Conditionally set the "Not working links with status code" column
+            // Conditionally set the "Not working links with statuscode" column
             if (notWorkingLinksCount > 0) {
-                writer.write("<td>");
-                for (String notWorkingLink : notWorkingLinksList) {
-                    writer.write(notWorkingLink + "<br>");
-                }
-                writer.write("</td>");
+                //writer.write("<td>" + notWorkingLinks.toString() + "</td>");
+                //writer.write("<td><a href='http://stackoverflow.com/questions'></a>Testing</td>");
+               // writer.write("<td>"<a href='http://stackoverflow.com/questions/579335/javascript-regexp-to-wrap-urls-and-emails-in-anchors'</a>+ "</td>");
+                //<a href='http://stackoverflow.com/questions/579335/javascript-regexp-to-wrap-urls-and-emails-in-anchors'>stackoverflow.com</a>
+                writer.write("<td><a href='" + notWorkingLinks.toString() + "'>" + notWorkingLinks.toString() + "</a></td>");
             } else {
                 writer.write("<td>NA</td>");
             }
 
             writer.write("</tr>");
 
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+
     }
 
 }
+
+
